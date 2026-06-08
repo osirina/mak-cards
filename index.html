@@ -581,9 +581,14 @@ function rawUrl(path) {
 }
 
 // ─── GITHUB API ──────────────────────────────────────────
+// Encode each path segment separately, preserving slashes
+function ghPath(path) {
+  return path.split('/').map(s => encodeURIComponent(s)).join('/');
+}
+
 async function ghGet(path) {
   const r = await fetch(
-    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}`,
+    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${ghPath(path)}`,
     { headers: { Authorization: `token ${cfg.token}`, Accept: 'application/vnd.github.v3+json' } }
   );
   if (r.status === 404) return null;
@@ -596,7 +601,7 @@ async function ghPutJson(path, content, sha) {
   const body = { message: `update ${path}`, content: b64 };
   if (sha) body.sha = sha;
   const r = await fetch(
-    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}`,
+    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${ghPath(path)}`,
     { method:'PUT', headers:{ Authorization:`token ${cfg.token}`, 'Content-Type':'application/json', Accept:'application/vnd.github.v3+json' }, body:JSON.stringify(body) }
   );
   if (!r.ok) { const e=await r.json(); throw new Error(e.message||`GitHub ${r.status}`); }
@@ -607,7 +612,7 @@ async function ghPutBinary(path, base64, sha) {
   const body = { message: `upload ${path}`, content: base64 };
   if (sha) body.sha = sha;
   const r = await fetch(
-    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}`,
+    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${ghPath(path)}`,
     { method:'PUT', headers:{ Authorization:`token ${cfg.token}`, 'Content-Type':'application/json', Accept:'application/vnd.github.v3+json' }, body:JSON.stringify(body) }
   );
   if (!r.ok) { const e=await r.json(); throw new Error(e.message||`GitHub ${r.status}`); }
@@ -616,7 +621,7 @@ async function ghPutBinary(path, base64, sha) {
 
 async function ghDelete(path, sha) {
   const r = await fetch(
-    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}`,
+    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${ghPath(path)}`,
     { method:'DELETE', headers:{ Authorization:`token ${cfg.token}`, 'Content-Type':'application/json', Accept:'application/vnd.github.v3+json' }, body:JSON.stringify({ message:`delete ${path}`, sha }) }
   );
   if (!r.ok) throw new Error(`GitHub ${r.status}`);
