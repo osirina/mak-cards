@@ -167,7 +167,7 @@
       align-content: start;
     }
     .gallery-card-wrap {
-      aspect-ratio: 3/4; position: relative; cursor: grab;
+      position: relative; cursor: grab;
       border-radius: 6px; overflow: hidden;
       box-shadow: 0 1px 4px rgba(0,0,0,0.1);
       transition: transform 0.12s, box-shadow 0.12s;
@@ -176,9 +176,9 @@
     }
     .gallery-card-wrap:hover { transform: scale(1.04); box-shadow: 0 3px 10px rgba(0,0,0,0.18); }
     .gallery-card-wrap:active { cursor: grabbing; }
-    .gallery-card-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
+    .gallery-card-wrap img { width: 100%; height: auto; display: block; pointer-events: none; }
     .gallery-card-back {
-      width: 100%; height: 100%;
+      width: 100%; aspect-ratio: 3/4;
       background: linear-gradient(145deg, #7c9885 0%, #4e6b59 100%);
       display: flex; align-items: center; justify-content: center;
     }
@@ -259,6 +259,18 @@
       border: 2px solid rgba(255,255,255,0.3); border-radius: 5px;
       display: flex; align-items: center; justify-content: center;
       color: rgba(255,255,255,0.4); font-size: 24px;
+    }
+    .card-back-label {
+      color: rgba(255,255,255,0.92); font-size: 13px; font-weight: 600;
+      text-align: center; padding: 0 8px; line-height: 1.4;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      word-break: break-word;
+    }
+    /* gallery labeled back */
+    .gallery-card-back.labeled { justify-content: center; }
+    .gallery-card-back.labeled .gallery-card-back-inner {
+      font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.9);
+      padding: 6px; text-align: center; line-height: 1.4; word-break: break-word;
     }
 
     /* Resize handle */
@@ -462,10 +474,18 @@
 
     <div class="admin-section">
       <div class="admin-section-title">Название</div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
         <input class="form-input" id="adminDeckNameInput" placeholder="Название колоды" style="max-width:280px" />
         <button class="btn btn-primary" onclick="saveDeckName()">Сохранить</button>
       </div>
+      <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:13px;line-height:1.5">
+        <input type="checkbox" id="adminLabeledBacks" style="margin-top:2px;cursor:pointer" onchange="saveLabeledBacks()" />
+        <span>
+          <strong>Надписи на рубашке</strong><br>
+          <span style="color:var(--text-muted)">Название карты берётся из имени файла — часть после последнего _<br>
+          Пример: <code>IMG_5711_обида.jpeg</code> → рубашка покажет «обида»</span>
+        </span>
+      </label>
     </div>
 
     <div class="admin-section">
@@ -735,14 +755,17 @@ function renderGallery() {
     grid.innerHTML = '<div class="gallery-empty">В колоде пока нет карт.<br><small>Добавьте через ✏️ рядом с колодой.</small></div>';
     return;
   }
+  const labeled = !!(activeDeck && activeDeck.labeledBacks);
   grid.innerHTML = galleryOrder.map(idx => {
-    const path = cards[idx];
-    const url  = rawUrl(path);
+    const path  = cards[idx];
+    const url   = rawUrl(path);
+    const label = labeled ? labelFromPath(path) : '';
     const inner = galleryFace === 'up'
       ? `<img src="${url}" alt="карта" loading="lazy" />`
-      : `<div class="gallery-card-back"><div class="gallery-card-back-inner">✦</div></div>`;
-    return `<div class="gallery-card-wrap" data-path="${path}" data-idx="${idx}"
-               title="Добавить на стол">
+      : `<div class="gallery-card-back${label ? ' labeled' : ''}">
+           <div class="gallery-card-back-inner">${label ? esc(label) : '✦'}</div>
+         </div>`;
+    return `<div class="gallery-card-wrap" data-path="${path}" data-idx="${idx}" title="Добавить на стол">
       ${inner}
       <div class="gallery-add-btn">＋</div>
     </div>`;
@@ -750,7 +773,7 @@ function renderGallery() {
 
   // Bind click & drag for each gallery card
   grid.querySelectorAll('.gallery-card-wrap').forEach(el => {
-    el.addEventListener('click', () => addCardToTable(el.dataset.path, false));
+    el.addEventListener('click', () => addCardToTable(el.dataset.path, galleryFace === 'down', undefined, undefined, labeled));
     el.addEventListener('mousedown', startGalleryDrag);
     el.addEventListener('touchstart', startGalleryDrag, {passive:false});
   });
@@ -758,21 +781,21 @@ function renderGallery() {
 
 function addRandomToTable() {
   if (!activeDeck || !(activeDeck.cards||[]).length) { toast('В колоде нет карт','err'); return; }
-  const idx  = Math.floor(Math.random() * activeDeck.cards.length);
-  addCardToTable(activeDeck.cards[idx], true);
+  const idx = Math.floor(Math.random() * activeDeck.cards.length);
+  addCardToTable(activeDeck.cards[idx], true, undefined, undefined, !!activeDeck.labeledBacks);
 }
 
 // ─── TABLE: ADD CARD ─────────────────────────────────────
-function addCardToTable(cardPath, faceDown, x, y) {
+function addCardToTable(cardPath, faceDown, x, y, labeled) {
+  if (labeled === undefined) labeled = !!(activeDeck && activeDeck.labeledBacks);
   const url = rawUrl(cardPath);
-  // Detect real image dimensions first, then place card
   const probe = new Image();
-  probe.onload = () => _placeCard(cardPath, url, faceDown, x, y, probe.naturalWidth, probe.naturalHeight);
-  probe.onerror = ()  => _placeCard(cardPath, url, faceDown, x, y, 3, 4); // fallback ratio
+  probe.onload  = () => _placeCard(cardPath, url, faceDown, x, y, probe.naturalWidth, probe.naturalHeight, labeled);
+  probe.onerror = () => _placeCard(cardPath, url, faceDown, x, y, 3, 4, labeled);
   probe.src = url;
 }
 
-function _placeCard(cardPath, url, faceDown, x, y, natW, natH) {
+function _placeCard(cardPath, url, faceDown, x, y, natW, natH, labeled) {
   const area  = document.getElementById('tableArea');
   const rect  = area.getBoundingClientRect();
   // Base size: fit longest side to 160px
@@ -790,13 +813,12 @@ function _placeCard(cardPath, url, faceDown, x, y, natW, natH) {
   card.className  = 'table-card' + (faceDown ? ' face-down' : '');
   card.id         = 'tc_' + id;
   card.style.cssText = `left:${cx}px;top:${cy}px;width:${W}px;height:${H}px;z-index:${10+id}`;
+  const label = labeled ? labelFromPath(cardPath) : '';
   card.innerHTML  = `
     <div class="table-card-inner">
       <div class="table-card-flip">
         <div class="table-card-face"><img src="${url}" loading="lazy" draggable="false" /></div>
-        <div class="table-card-back-face">
-          <div class="card-back-design"><div class="card-back-inner">✦</div></div>
-        </div>
+        <div class="table-card-back-face">${cardBackHTML(label)}</div>
       </div>
     </div>
     <div class="table-card-resize">
@@ -957,7 +979,7 @@ function startGalleryDrag(e) {
     // Drop only if over the table area
     if (p.clientX >= rect.left && p.clientX <= rect.right &&
         p.clientY >= rect.top  && p.clientY <= rect.bottom) {
-      addCardToTable(path, galleryFace === 'down', p.clientX - rect.left, p.clientY - rect.top);
+      addCardToTable(path, galleryFace === 'down', p.clientX - rect.left, p.clientY - rect.top, !!(activeDeck && activeDeck.labeledBacks));
     }
     document.removeEventListener('mousemove', move);
     document.removeEventListener('touchmove', move);
@@ -1010,8 +1032,19 @@ function openAdminForDeck(d) {
   adminDeck = d;
   document.getElementById('adminTitle').textContent = `Управление: ${d.name}`;
   document.getElementById('adminDeckNameInput').value = d.name;
+  document.getElementById('adminLabeledBacks').checked = !!d.labeledBacks;
   renderAdminCards();
   showScreen('admin');
+}
+
+async function saveLabeledBacks() {
+  if (!adminDeck) return;
+  adminDeck.labeledBacks = document.getElementById('adminLabeledBacks').checked;
+  try {
+    await saveDecksJson();
+    toast(adminDeck.labeledBacks ? 'Надписи на рубашке включены' : 'Надписи на рубашке выключены', 'ok');
+    if (activeDeck && activeDeck.id === adminDeck.id) renderGallery();
+  } catch(e) { toast('Ошибка: '+e.message,'err'); }
 }
 
 function renderAdminCards() {
@@ -1161,6 +1194,26 @@ function toast(msg, type='') {
 // ─── UTILS ───────────────────────────────────────────────
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function slugify(s) { return s.toLowerCase().replace(/[^a-zа-яё0-9]+/gi,'-').replace(/^-|-$/g,''); }
+
+// Extract label from filename: "IMG_5711_обида.jpeg" → "обида"
+function labelFromPath(path) {
+  const filename = path.split('/').pop();          // "IMG_5711_обида.jpeg"
+  const noExt    = filename.replace(/\.[^.]+$/, ''); // "IMG_5711_обида"
+  const parts    = noExt.split('_');
+  return parts.length > 1 ? parts[parts.length - 1] : noExt;
+}
+
+function cardBackHTML(label) {
+  if (label) {
+    return `<div class="card-back-design">
+      <div class="card-back-inner" style="flex-direction:column;gap:6px">
+        <span style="font-size:16px;opacity:0.4">✦</span>
+        <span class="card-back-label">${esc(label)}</span>
+      </div>
+    </div>`;
+  }
+  return `<div class="card-back-design"><div class="card-back-inner">✦</div></div>`;
+}
 
 // Escape key closes overlays
 document.addEventListener('keydown', e => {
