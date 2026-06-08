@@ -172,10 +172,11 @@
       box-shadow: 0 1px 4px rgba(0,0,0,0.1);
       transition: transform 0.12s, box-shadow 0.12s;
       user-select: none;
+      background: var(--surface2);
     }
     .gallery-card-wrap:hover { transform: scale(1.04); box-shadow: 0 3px 10px rgba(0,0,0,0.18); }
     .gallery-card-wrap:active { cursor: grabbing; }
-    .gallery-card-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+    .gallery-card-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; pointer-events: none; }
     .gallery-card-back {
       width: 100%; height: 100%;
       background: linear-gradient(145deg, #7c9885 0%, #4e6b59 100%);
@@ -295,8 +296,8 @@
     }
     .admin-section-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
     .admin-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
-    .admin-card-item { position: relative; aspect-ratio: 3/4; }
-    .admin-card-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; display: block; }
+    .admin-card-item { position: relative; aspect-ratio: 3/4; background: var(--surface2); border-radius: 6px; }
+    .admin-card-item img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; display: block; }
     .admin-card-del {
       position: absolute; top: 3px; right: 3px;
       width: 20px; height: 20px; border-radius: 50%;
@@ -763,9 +764,20 @@ function addRandomToTable() {
 
 // ─── TABLE: ADD CARD ─────────────────────────────────────
 function addCardToTable(cardPath, faceDown, x, y) {
+  const url = rawUrl(cardPath);
+  // Detect real image dimensions first, then place card
+  const probe = new Image();
+  probe.onload = () => _placeCard(cardPath, url, faceDown, x, y, probe.naturalWidth, probe.naturalHeight);
+  probe.onerror = ()  => _placeCard(cardPath, url, faceDown, x, y, 3, 4); // fallback ratio
+  probe.src = url;
+}
+
+function _placeCard(cardPath, url, faceDown, x, y, natW, natH) {
   const area  = document.getElementById('tableArea');
   const rect  = area.getBoundingClientRect();
-  const W = 120, H = Math.round(120*4/3);
+  // Base size: fit longest side to 160px
+  const W = natW >= natH ? 160 : Math.round(160 * natW / natH);
+  const H = natH >= natW ? 160 : Math.round(160 * natH / natW);
 
   const cx = (x !== undefined) ? Math.max(0, Math.min(x - W/2, rect.width  - W))
                                 : Math.random()*(rect.width - W - 40) + 20;
@@ -773,7 +785,6 @@ function addCardToTable(cardPath, faceDown, x, y) {
                                 : Math.random()*(rect.height - H - 40) + 20;
 
   const id  = ++cardIdSeq;
-  const url = rawUrl(cardPath);
 
   const card = document.createElement('div');
   card.className  = 'table-card' + (faceDown ? ' face-down' : '');
