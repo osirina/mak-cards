@@ -653,7 +653,7 @@ async function loadApp() {
   renderDeckListLoading();
   try {
     const file = await ghGet('decks.json');
-    decksData = file ? JSON.parse(atob(file.content.replace(/\n/g,''))) : { decks:[] };
+    decksData = file ? JSON.parse(decodeURIComponent(escape(atob(file.content.replace(/\n/g,''))))) : { decks:[] };
   } catch(e) {
     toast('Ошибка загрузки: ' + e.message, 'err');
     decksData = { decks:[] };
@@ -1203,7 +1203,12 @@ function toast(msg, type='') {
 
 // ─── UTILS ───────────────────────────────────────────────
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function slugify(s) { return s.toLowerCase().replace(/[^a-zа-яё0-9]+/gi,'-').replace(/^-|-$/g,''); }
+// ASCII-only slugs to avoid encoding issues in file paths
+function slugify(s) {
+  return s.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'deck';
+}
 
 // Extract label from filename: "IMG_5711_обида.jpeg" → "обида"
 function labelFromPath(path) {
