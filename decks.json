@@ -3,7 +3,8 @@
     {
       "id": "emotions-1780921389260",
       "name": "Emotions",
-      "cards": []
+      "cards": [],
+      "labeledBacks": true
     },
     {
       "id": "time-1780923847283",
