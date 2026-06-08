@@ -81,7 +81,8 @@
     {
       "id": "у-1780924670798",
       "name": "у",
-      "cards": []
+      "cards": [],
+      "labeledBacks": true
     }
   ]
 }
