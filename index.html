@@ -162,9 +162,8 @@
     /* Gallery grid */
     .gallery-grid {
       flex: 1; overflow-y: auto;
-      display: grid; grid-template-columns: 1fr 1fr;
+      display: flex; flex-direction: column;
       gap: 6px; padding: 10px;
-      align-content: start;
     }
     .gallery-card-wrap {
       position: relative; cursor: grab;
@@ -173,8 +172,9 @@
       transition: transform 0.12s, box-shadow 0.12s;
       user-select: none;
       background: var(--surface2);
+      min-height: 60px;
     }
-    .gallery-card-wrap:hover { transform: scale(1.04); box-shadow: 0 3px 10px rgba(0,0,0,0.18); }
+    .gallery-card-wrap:hover { transform: scale(1.02); box-shadow: 0 3px 10px rgba(0,0,0,0.18); }
     .gallery-card-wrap:active { cursor: grabbing; }
     .gallery-card-wrap img { width: 100%; height: auto; display: block; pointer-events: none; }
     .gallery-card-back {
@@ -761,7 +761,7 @@ function renderGallery() {
     const url   = rawUrl(path);
     const label = labeled ? labelFromPath(path) : '';
     const inner = galleryFace === 'up'
-      ? `<img src="${url}" alt="карта" loading="lazy" />`
+      ? `<img src="${url}" alt="карта" />`
       : `<div class="gallery-card-back${label ? ' labeled' : ''}">
            <div class="gallery-card-back-inner">${label ? esc(label) : '✦'}</div>
          </div>`;
