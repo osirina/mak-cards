@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>МАК — Метафорические карты</title>
+  <style>
+    :root {
+      --bg: #f0ebe3;
+      --surface: #ffffff;
+      --surface2: #e8e1d8;
+      --border: #d8cfc4;
+      --text: #2a2218;
+      --text-muted: #8a7d6e;
+      --accent: #7c9885;
+      --accent-dark: #5a7364;
+      --accent-light: #d4e4da;
+      --danger: #b85c45;
+      --sidebar-w: 280px;
+      --header-h: 52px;
+      --radius: 10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ═══ HEADER ═══ */
+    .header {
+      height: var(--header-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      z-index: 200;
+      flex-shrink: 0;
+    }
+    .header-logo { font-weight: 700; font-size: 15px; letter-spacing: 0.3px; margin-right: 4px; }
+    .header-sep { width: 1px; height: 20px; background: var(--border); }
+    .header-spacer { flex: 1; }
+
+    /* ═══ BUTTONS ═══ */
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 13px; border-radius: 7px; border: none;
+      cursor: pointer; font-size: 13px; font-weight: 500;
+      transition: background 0.14s, opacity 0.14s; white-space: nowrap;
+    }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-ghost     { background: transparent; color: var(--text-muted); padding: 6px 8px; }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+    .btn-danger    { background: var(--danger); color: #fff; }
+    .btn-danger:hover { opacity: 0.85; }
+    .btn:disabled  { opacity: 0.45; cursor: not-allowed; }
+    .btn-icon      { padding: 6px; width: 32px; height: 32px; justify-content: center; font-size: 15px; }
+
+    /* ═══ SCREENS ═══ */
+    .screen { display: none; flex: 1; overflow: hidden; }
+    .screen.active { display: flex; }
+
+    /* ═══ SETUP SCREEN ═══ */
+    #screenSetup {
+      align-items: center; justify-content: center;
+      background: var(--bg);
+    }
+    .setup-card {
+      background: var(--surface); border-radius: 14px;
+      padding: 40px; max-width: 460px; width: calc(100% - 32px);
+      box-shadow: 0 4px 32px rgba(0,0,0,0.08);
+    }
+    .setup-title { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .setup-desc  { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin-bottom: 28px; }
+    .form-group  { margin-bottom: 18px; }
+    .form-label  { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+    .form-input  {
+      width: 100%; padding: 9px 11px; border: 1px solid var(--border);
+      border-radius: 7px; font-size: 14px; background: var(--surface); color: var(--text);
+    }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+    .form-hint   { font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+    .form-hint a { color: var(--accent); }
+
+    /* ═══ MAIN LAYOUT (sidebar + table) ═══ */
+    #screenMain { flex-direction: row; }
+
+    /* ═══ SIDEBAR ═══ */
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-top {
+      padding: 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sidebar-top-title { font-size: 13px; font-weight: 600; flex: 1; }
+
+    /* Deck list */
+    .deck-list { overflow-y: auto; max-height: 180px; }
+    .deck-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+    }
+    .deck-item:hover  { background: var(--surface2); }
+    .deck-item.active { background: var(--accent-light); }
+    .deck-thumb {
+      width: 32px; height: 42px; object-fit: cover;
+      border-radius: 4px; flex-shrink: 0; background: var(--surface2);
+    }
+    .deck-thumb-placeholder {
+      width: 32px; height: 42px; background: var(--surface2);
+      border-radius: 4px; display: flex; align-items: center;
+      justify-content: center; font-size: 16px; flex-shrink: 0;
+    }
+    .deck-item-name  { font-size: 13px; font-weight: 500; flex: 1; }
+    .deck-item-count { font-size: 11px; color: var(--text-muted); }
+    .deck-item-edit  {
+      opacity: 0; font-size: 13px; color: var(--text-muted);
+      background: none; border: none; cursor: pointer; padding: 2px 4px;
+    }
+    .deck-item:hover .deck-item-edit { opacity: 1; }
+    .deck-item-edit:hover { color: var(--text); }
+
+    /* Gallery section */
+    .gallery-section { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .gallery-header {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .gallery-header-row { display: flex; align-items: center; gap: 6px; }
+    .gallery-deck-name { font-size: 13px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* Face toggle */
+    .face-toggle {
+      display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+    }
+    .face-toggle-btn {
+      padding: 4px 9px; font-size: 12px; border: none; cursor: pointer;
+      background: transparent; color: var(--text-muted); transition: all 0.12s;
+    }
+    .face-toggle-btn.active { background: var(--accent); color: #fff; }
+
+    /* Gallery grid */
+    .gallery-grid {
+      flex: 1; overflow-y: auto;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 6px; padding: 10px;
+      align-content: start;
+    }
+    .gallery-card-wrap {
+      aspect-ratio: 3/4; position: relative; cursor: grab;
+      border-radius: 6px; overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      transition: transform 0.12s, box-shadow 0.12s;
+      user-select: none;
+    }
+    .gallery-card-wrap:hover { transform: scale(1.04); box-shadow: 0 3px 10px rgba(0,0,0,0.18); }
+    .gallery-card-wrap:active { cursor: grabbing; }
+    .gallery-card-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+    .gallery-card-back {
+      width: 100%; height: 100%;
+      background: linear-gradient(145deg, #7c9885 0%, #4e6b59 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .gallery-card-back-inner {
+      width: calc(100% - 10px); height: calc(100% - 10px);
+      border: 1.5px solid rgba(255,255,255,0.3); border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; color: rgba(255,255,255,0.5);
+    }
+    .gallery-add-btn {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.35); opacity: 0; transition: opacity 0.14s;
+      color: #fff; font-size: 22px;
+    }
+    .gallery-card-wrap:hover .gallery-add-btn { opacity: 1; }
+
+    .gallery-empty {
+      grid-column: 1/-1; text-align: center;
+      color: var(--text-muted); font-size: 13px; padding: 32px 16px;
+    }
+
+    /* ═══ TABLE ═══ */
+    .table-area {
+      flex: 1; position: relative; overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(124,152,133,0.06) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(90,115,100,0.05) 0%, transparent 50%),
+        var(--bg);
+    }
+    .table-empty-hint {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      color: var(--text-muted); font-size: 14px; text-align: center;
+      pointer-events: none; user-select: none; opacity: 0.6;
+    }
+    .table-empty-hint .hint-icon { font-size: 40px; margin-bottom: 10px; }
+
+    /* ═══ TABLE CARD ═══ */
+    .table-card {
+      position: absolute;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      cursor: move;
+      user-select: none;
+      touch-action: none;
+    }
+    .table-card-inner {
+      width: 100%; height: 100%;
+      border-radius: 8px; overflow: hidden;
+      position: relative;
+    }
+    /* Flip container */
+    .table-card-flip {
+      width: 100%; height: 100%;
+      position: relative; transform-style: preserve-3d;
+      transition: transform 0.45s ease;
+      border-radius: 8px;
+    }
+    .table-card.face-down .table-card-flip { transform: rotateY(180deg); }
+
+    .table-card-face, .table-card-back-face {
+      position: absolute; inset: 0; border-radius: 8px;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      overflow: hidden;
+    }
+    .table-card-back-face { transform: rotateY(180deg); }
+
+    .table-card-face img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      pointer-events: none;
+    }
+    .table-card-back-face .card-back-design {
+      width: 100%; height: 100%;
+      background: linear-gradient(145deg, #7c9885 0%, #4e6b59 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .table-card-back-face .card-back-inner {
+      width: calc(100% - 12px); height: calc(100% - 12px);
+      border: 2px solid rgba(255,255,255,0.3); border-radius: 5px;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.4); font-size: 24px;
+    }
+
+    /* Resize handle */
+    .table-card-resize {
+      position: absolute; bottom: 0; right: 0;
+      width: 18px; height: 18px; cursor: nwse-resize; z-index: 10;
+      background: rgba(255,255,255,0.6); border-radius: 8px 0 8px 0;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.14s;
+    }
+    .table-card-resize svg { width: 10px; height: 10px; color: #555; }
+    .table-card:hover .table-card-resize { opacity: 1; }
+
+    /* Remove button */
+    .table-card-remove {
+      position: absolute; top: -8px; right: -8px;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--danger); color: #fff; border: 2px solid #fff;
+      font-size: 11px; cursor: pointer; z-index: 20;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.14s;
+    }
+    .table-card:hover .table-card-remove { opacity: 1; }
+    .table-card-remove:hover { background: #8b3325; }
+
+    /* ═══ ADMIN SCREEN ═══ */
+    #screenAdmin {
+      flex-direction: column; overflow: hidden;
+      background: var(--bg);
+    }
+    .admin-inner { flex: 1; overflow-y: auto; padding: 24px; max-width: 760px; width: 100%; margin: 0 auto; }
+    .admin-section {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 20px; margin-bottom: 20px;
+    }
+    .admin-section-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+    .admin-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+    .admin-card-item { position: relative; aspect-ratio: 3/4; }
+    .admin-card-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; display: block; }
+    .admin-card-del {
+      position: absolute; top: 3px; right: 3px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--danger); color: #fff; border: none;
+      font-size: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.12s;
+    }
+    .admin-card-item:hover .admin-card-del { opacity: 1; }
+
+    .upload-area {
+      border: 2px dashed var(--border); border-radius: 8px;
+      padding: 28px; text-align: center; cursor: pointer;
+      transition: all 0.14s; margin-top: 14px;
+    }
+    .upload-area:hover, .upload-area.over { border-color: var(--accent); background: var(--accent-light); }
+    .upload-icon { font-size: 28px; margin-bottom: 6px; }
+    .upload-text { color: var(--text-muted); font-size: 13px; }
+    .progress-wrap { margin-top: 10px; display: none; }
+    .progress-bar  { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.2s; }
+    .progress-text { font-size: 12px; color: var(--text-muted); }
+
+    /* ═══ MODAL ═══ */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.38); z-index: 300;
+      align-items: center; justify-content: center;
+    }
+    .overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: 12px;
+      padding: 28px; max-width: 420px; width: calc(100% - 32px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+    }
+    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 18px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 22px; }
+
+    /* ═══ TOAST ═══ */
+    .toast {
+      position: fixed; bottom: 22px; right: 22px;
+      background: var(--text); color: #fff;
+      padding: 10px 18px; border-radius: 8px; font-size: 13px;
+      z-index: 500; transform: translateY(70px); transition: transform 0.28s;
+      max-width: 300px;
+    }
+    .toast.show { transform: translateY(0); }
+    .toast.ok  { background: var(--accent-dark); }
+    .toast.err { background: var(--danger); }
+
+    /* ═══ LOADING ═══ */
+    .spinner {
+      width: 36px; height: 36px; border: 3px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 14px; color: var(--text-muted);
+      font-size: 14px; min-height: 200px;
+    }
+
+    /* ═══ SCROLLBAR ═══ */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════ HEADER ═══════════════════════ -->
+<div class="header" id="mainHeader">
+  <div class="header-logo">🃏 МАК</div>
+  <div class="header-sep"></div>
+  <span id="headerDeckLabel" style="font-size:13px;color:var(--text-muted)">Выберите колоду</span>
+  <div class="header-spacer"></div>
+  <button class="btn btn-secondary" id="btnClearTable" onclick="clearTable()" style="display:none">Очистить стол</button>
+  <button class="btn btn-ghost btn-icon" id="btnAdminToggle" onclick="goAdmin()" title="Управление колодами" style="display:none">⚙️</button>
+  <button class="btn btn-ghost btn-icon" onclick="showSettings()" title="Настройки">⚙</button>
+</div>
+
+<!-- ═══════════════════════ SETUP SCREEN ═══════════════════════ -->
+<div class="screen" id="screenSetup">
+  <div class="setup-card">
+    <div class="setup-title">Добро пожаловать!</div>
+    <div class="setup-desc">
+      Укажите данные GitHub-репозитория, где будут храниться ваши колоды карт.
+      Приложение будет доступно с любого устройства по одной ссылке.
+    </div>
+    <div class="form-group">
+      <label class="form-label">GitHub-логин</label>
+      <input class="form-input" id="setupOwner" placeholder="username" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Название репозитория</label>
+      <input class="form-input" id="setupRepo" placeholder="mak-cards" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Personal Access Token</label>
+      <input class="form-input" id="setupToken" type="password" placeholder="ghp_..." />
+      <div class="form-hint">
+        Нужен для загрузки карт. Создайте на
+        <a href="https://github.com/settings/tokens" target="_blank">github.com → Settings → Developer Settings → Personal access tokens → Fine-grained</a>.
+        Дайте доступ к репозиторию: Contents — Read &amp; Write.
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:10px" onclick="saveSetup()">Начать →</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════ MAIN SCREEN ═══════════════════════ -->
+<div class="screen" id="screenMain">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <span class="sidebar-top-title">Колоды</span>
+      <button class="btn btn-primary" style="padding:4px 10px;font-size:12px" onclick="showNewDeck()">+ Новая</button>
+    </div>
+
+    <div class="deck-list" id="deckList">
+      <div class="loading-wrap" style="min-height:80px"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Gallery section -->
+    <div class="gallery-section" id="gallerySection" style="display:none">
+      <div class="gallery-header">
+        <div class="gallery-header-row">
+          <span class="gallery-deck-name" id="galleryDeckName"></span>
+          <button class="btn btn-ghost btn-icon" onclick="shuffleGallery()" title="Перемешать">🔀</button>
+        </div>
+        <div class="gallery-header-row">
+          <div class="face-toggle">
+            <button class="face-toggle-btn active" id="faceUpBtn" onclick="setFaceMode('up')">Лицом</button>
+            <button class="face-toggle-btn" id="faceDownBtn" onclick="setFaceMode('down')">Рубашкой</button>
+          </div>
+          <div style="flex:1"></div>
+          <button class="btn btn-secondary" style="font-size:11px;padding:4px 8px" onclick="addRandomToTable()" title="Случайная карта на стол">🎲 Случайная</button>
+        </div>
+      </div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-area" id="tableArea">
+    <div class="table-empty-hint" id="tableHint">
+      <div class="hint-icon">🃏</div>
+      Перетащите карту из галереи<br>или кликните на неё
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ ADMIN SCREEN ═══════════════════════ -->
+<div class="screen" id="screenAdmin">
+  <div class="admin-inner">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <button class="btn btn-secondary" onclick="goMain()">← На рабочий стол</button>
+      <h2 style="font-size:17px;font-weight:700" id="adminTitle">Управление колодой</h2>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">Название</div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" id="adminDeckNameInput" placeholder="Название колоды" style="max-width:280px" />
+        <button class="btn btn-primary" onclick="saveDeckName()">Сохранить</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <div class="admin-section-title">Карты (<span id="adminCardCount">0</span>)</div>
+      <div class="admin-cards-grid" id="adminCardsGrid"></div>
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📂</div>
+        <div class="upload-text">Нажмите или перетащите фотографии<br><small>JPG, PNG, WEBP — можно несколько сразу</small></div>
+      </div>
+      <input type="file" id="fileInput" multiple accept="image/*" style="display:none" onchange="handleUpload(event)" />
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-text" id="progressText">Загрузка...</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0"></div></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-danger" onclick="confirmDeleteDeck()">Удалить колоду</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ MODALS ═══════════════════════ -->
+<div class="overlay" id="overlayNewDeck">
+  <div class="modal">
+    <div class="modal-title">Новая колода</div>
+    <div class="form-group">
+      <label class="form-label">Название</label>
+      <input class="form-input" id="newDeckInput" placeholder="Например: ОН, Пейзаж, Ресурсы…" onkeydown="if(event.key==='Enter')createDeck()" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeOverlay('overlayNewDeck')">Отмена</button>
+      <button class="btn btn-primary" onclick="createDeck()">Создать</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlayConfirm">
+  <div class="modal">
+    <div class="modal-title" id="confirmTitle">Подтверждение</div>
+    <div style="font-size:14px;color:var(--text-muted);line-height:1.6" id="confirmBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeOverlay('overlayConfirm')">Отмена</button>
+      <button class="btn btn-danger" id="confirmOkBtn">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlaySettings">
+  <div class="modal">
+    <div class="modal-title">⚙️ Настройки</div>
+    <div class="form-group">
+      <label class="form-label">GitHub-логин</label>
+      <input class="form-input" id="settingsOwner" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Репозиторий</label>
+      <input class="form-input" id="settingsRepo" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Personal Access Token</label>
+      <input class="form-input" id="settingsToken" type="password" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeOverlay('overlaySettings')">Отмена</button>
+      <button class="btn btn-primary" onclick="applySettings()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ─── STATE ───────────────────────────────────────────────
+let cfg = { owner:'', repo:'', token:'' };
+let decksData = { decks: [] };
+let activeDeck  = null;   // deck object currently shown in gallery
+let adminDeck   = null;   // deck being edited in admin
+let galleryFace = 'up';   // 'up' | 'down'
+let galleryOrder = [];    // indices of activeDeck.cards in current gallery order
+let tableCards  = [];     // array of { id, cardPath, faceDown, el }
+let cardIdSeq   = 0;
+let currentScreen = '';
+
+// ─── RAW URL ─────────────────────────────────────────────
+function rawUrl(path) {
+  return `https://raw.githubusercontent.com/${cfg.owner}/${cfg.repo}/main/${path}?t=${Date.now()}`;
+}
+
+// ─── GITHUB API ──────────────────────────────────────────
+async function ghGet(path) {
+  const r = await fetch(
+    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}`,
+    { headers: { Authorization: `token ${cfg.token}`, Accept: 'application/vnd.github.v3+json' } }
+  );
+  if (r.status === 404) return null;
+  if (!r.ok) throw new Error(`GitHub ${r.status}: ${path}`);
+  return r.json();
+}
+
+async function ghPutJson(path, content, sha) {
+  const b64 = btoa(unescape(encodeURIComponent(content)));
+  const body = { message: `update ${path}`, content: b64 };
+  if (sha) body.sha = sha;
+  const r = await fetch(
+    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}`,
+    { method:'PUT', headers:{ Authorization:`token ${cfg.token}`, 'Content-Type':'application/json', Accept:'application/vnd.github.v3+json' }, body:JSON.stringify(body) }
+  );
+  if (!r.ok) { const e=await r.json(); throw new Error(e.message||`GitHub ${r.status}`); }
+  return r.json();
+}
+
+async function ghPutBinary(path, base64, sha) {
+  const body = { message: `upload ${path}`, content: base64 };
+  if (sha) body.sha = sha;
+  const r = await fetch(
+    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}`,
+    { method:'PUT', headers:{ Authorization:`token ${cfg.token}`, 'Content-Type':'application/json', Accept:'application/vnd.github.v3+json' }, body:JSON.stringify(body) }
+  );
+  if (!r.ok) { const e=await r.json(); throw new Error(e.message||`GitHub ${r.status}`); }
+  return r.json();
+}
+
+async function ghDelete(path, sha) {
+  const r = await fetch(
+    `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${encodeURIComponent(path)}`,
+    { method:'DELETE', headers:{ Authorization:`token ${cfg.token}`, 'Content-Type':'application/json', Accept:'application/vnd.github.v3+json' }, body:JSON.stringify({ message:`delete ${path}`, sha }) }
+  );
+  if (!r.ok) throw new Error(`GitHub ${r.status}`);
+}
+
+async function saveDecksJson() {
+  const content = JSON.stringify(decksData, null, 2);
+  const existing = await ghGet('decks.json');
+  await ghPutJson('decks.json', content, existing ? existing.sha : undefined);
+}
+
+// ─── INIT ────────────────────────────────────────────────
+async function init() {
+  const saved = localStorage.getItem('mak_cfg');
+  if (!saved) { showScreen('setup'); return; }
+  cfg = JSON.parse(saved);
+  await loadApp();
+}
+
+async function loadApp() {
+  showScreen('main');
+  document.getElementById('btnAdminToggle').style.display = '';
+  document.getElementById('btnClearTable').style.display = '';
+  renderDeckListLoading();
+  try {
+    const file = await ghGet('decks.json');
+    decksData = file ? JSON.parse(atob(file.content.replace(/\n/g,''))) : { decks:[] };
+  } catch(e) {
+    toast('Ошибка загрузки: ' + e.message, 'err');
+    decksData = { decks:[] };
+  }
+  renderDeckList();
+}
+
+// ─── SCREENS ─────────────────────────────────────────────
+function showScreen(name) {
+  currentScreen = name;
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const map = { setup:'screenSetup', main:'screenMain', admin:'screenAdmin' };
+  document.getElementById(map[name]).classList.add('active');
+}
+
+// ─── SETUP / SETTINGS ────────────────────────────────────
+function saveSetup() {
+  const o = document.getElementById('setupOwner').value.trim();
+  const r = document.getElementById('setupRepo').value.trim();
+  const t = document.getElementById('setupToken').value.trim();
+  if (!o||!r||!t) { toast('Заполните все поля','err'); return; }
+  cfg = { owner:o, repo:r, token:t };
+  localStorage.setItem('mak_cfg', JSON.stringify(cfg));
+  loadApp();
+}
+
+function showSettings() {
+  document.getElementById('settingsOwner').value = cfg.owner;
+  document.getElementById('settingsRepo').value  = cfg.repo;
+  document.getElementById('settingsToken').value = cfg.token;
+  openOverlay('overlaySettings');
+}
+
+function applySettings() {
+  const o = document.getElementById('settingsOwner').value.trim();
+  const r = document.getElementById('settingsRepo').value.trim();
+  const t = document.getElementById('settingsToken').value.trim();
+  if (!o||!r||!t) { toast('Заполните все поля','err'); return; }
+  cfg = { owner:o, repo:r, token:t };
+  localStorage.setItem('mak_cfg', JSON.stringify(cfg));
+  closeOverlay('overlaySettings');
+  toast('Настройки сохранены','ok');
+  loadApp();
+}
+
+// ─── DECK LIST ───────────────────────────────────────────
+function renderDeckListLoading() {
+  document.getElementById('deckList').innerHTML =
+    '<div class="loading-wrap" style="min-height:80px"><div class="spinner"></div></div>';
+}
+
+function renderDeckList() {
+  const el = document.getElementById('deckList');
+  if (!decksData.decks.length) {
+    el.innerHTML = '<div style="padding:16px 12px;font-size:13px;color:var(--text-muted)">Колод пока нет. Создайте первую!</div>';
+    return;
+  }
+  el.innerHTML = decksData.decks.map(d => {
+    const active = activeDeck && activeDeck.id === d.id ? ' active' : '';
+    const count = (d.cards||[]).length;
+    const thumb = count > 0
+      ? `<img class="deck-thumb" src="${rawUrl(d.cards[0])}" onerror="this.style.display='none'" />`
+      : `<div class="deck-thumb-placeholder">🃏</div>`;
+    return `<div class="deck-item${active}" data-id="${d.id}" onclick="selectDeck('${d.id}')">
+      ${thumb}
+      <div style="flex:1;min-width:0">
+        <div class="deck-item-name">${esc(d.name)}</div>
+        <div class="deck-item-count">${count} карт</div>
+      </div>
+      <button class="deck-item-edit" title="Редактировать" onclick="openAdminDeck('${d.id}',event)">✏️</button>
+    </div>`;
+  }).join('');
+}
+
+// ─── SELECT DECK / GALLERY ───────────────────────────────
+function selectDeck(id) {
+  activeDeck = decksData.decks.find(d => d.id === id);
+  if (!activeDeck) return;
+  document.getElementById('headerDeckLabel').textContent = activeDeck.name;
+  galleryOrder = Array.from({length:(activeDeck.cards||[]).length},(_,i)=>i);
+  galleryFace  = 'up';
+  document.getElementById('faceUpBtn').classList.add('active');
+  document.getElementById('faceDownBtn').classList.remove('active');
+  document.getElementById('gallerySection').style.display = '';
+  document.getElementById('galleryDeckName').textContent = activeDeck.name;
+  renderGallery();
+  renderDeckList(); // refresh active highlight
+}
+
+function setFaceMode(mode) {
+  galleryFace = mode;
+  document.getElementById('faceUpBtn').classList.toggle('active', mode==='up');
+  document.getElementById('faceDownBtn').classList.toggle('active', mode==='down');
+  renderGallery();
+}
+
+function shuffleGallery() {
+  for (let i = galleryOrder.length-1; i>0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [galleryOrder[i],galleryOrder[j]] = [galleryOrder[j],galleryOrder[i]];
+  }
+  renderGallery();
+}
+
+function renderGallery() {
+  const grid = document.getElementById('galleryGrid');
+  const cards = activeDeck ? (activeDeck.cards||[]) : [];
+  if (!cards.length) {
+    grid.innerHTML = '<div class="gallery-empty">В колоде пока нет карт.<br><small>Добавьте через ✏️ рядом с колодой.</small></div>';
+    return;
+  }
+  grid.innerHTML = galleryOrder.map(idx => {
+    const path = cards[idx];
+    const url  = rawUrl(path);
+    const inner = galleryFace === 'up'
+      ? `<img src="${url}" alt="карта" loading="lazy" />`
+      : `<div class="gallery-card-back"><div class="gallery-card-back-inner">✦</div></div>`;
+    return `<div class="gallery-card-wrap" data-path="${path}" data-idx="${idx}"
+               title="Добавить на стол">
+      ${inner}
+      <div class="gallery-add-btn">＋</div>
+    </div>`;
+  }).join('');
+
+  // Bind click & drag for each gallery card
+  grid.querySelectorAll('.gallery-card-wrap').forEach(el => {
+    el.addEventListener('click', () => addCardToTable(el.dataset.path, false));
+    el.addEventListener('mousedown', startGalleryDrag);
+    el.addEventListener('touchstart', startGalleryDrag, {passive:false});
+  });
+}
+
+function addRandomToTable() {
+  if (!activeDeck || !(activeDeck.cards||[]).length) { toast('В колоде нет карт','err'); return; }
+  const idx  = Math.floor(Math.random() * activeDeck.cards.length);
+  addCardToTable(activeDeck.cards[idx], true);
+}
+
+// ─── TABLE: ADD CARD ─────────────────────────────────────
+function addCardToTable(cardPath, faceDown, x, y) {
+  const area  = document.getElementById('tableArea');
+  const rect  = area.getBoundingClientRect();
+  const W = 120, H = Math.round(120*4/3);
+
+  const cx = (x !== undefined) ? Math.max(0, Math.min(x - W/2, rect.width  - W))
+                                : Math.random()*(rect.width - W - 40) + 20;
+  const cy = (y !== undefined) ? Math.max(0, Math.min(y - H/2, rect.height - H))
+                                : Math.random()*(rect.height - H - 40) + 20;
+
+  const id  = ++cardIdSeq;
+  const url = rawUrl(cardPath);
+
+  const card = document.createElement('div');
+  card.className  = 'table-card' + (faceDown ? ' face-down' : '');
+  card.id         = 'tc_' + id;
+  card.style.cssText = `left:${cx}px;top:${cy}px;width:${W}px;height:${H}px;z-index:${10+id}`;
+  card.innerHTML  = `
+    <div class="table-card-inner">
+      <div class="table-card-flip">
+        <div class="table-card-face"><img src="${url}" loading="lazy" draggable="false" /></div>
+        <div class="table-card-back-face">
+          <div class="card-back-design"><div class="card-back-inner">✦</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="table-card-resize">
+      <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M2 8 L8 2M5 8 L8 5"/>
+      </svg>
+    </div>
+    <button class="table-card-remove" onclick="removeTableCard(${id})" title="Убрать">✕</button>`;
+
+  area.appendChild(card);
+  document.getElementById('tableHint').style.display = 'none';
+
+  const entry = { id, cardPath, faceDown, el: card };
+  tableCards.push(entry);
+
+  // Flip on click
+  card.querySelector('.table-card-inner').addEventListener('click', e => {
+    if (e.target.closest('.table-card-resize') || e.target.closest('.table-card-remove')) return;
+    if (card._didDrag) return;
+    card.classList.toggle('face-down');
+    entry.faceDown = card.classList.contains('face-down');
+  });
+
+  // Drag to move
+  card.addEventListener('mousedown',  e => startCardMove(e, card));
+  card.addEventListener('touchstart', e => startCardMove(e, card), {passive:false});
+
+  // Drag to resize
+  card.querySelector('.table-card-resize').addEventListener('mousedown',  e => startCardResize(e, card));
+  card.querySelector('.table-card-resize').addEventListener('touchstart', e => startCardResize(e, card), {passive:false});
+
+  updateClearBtn();
+}
+
+function removeTableCard(id) {
+  const idx = tableCards.findIndex(c => c.id === id);
+  if (idx < 0) return;
+  tableCards[idx].el.remove();
+  tableCards.splice(idx, 1);
+  if (!tableCards.length) document.getElementById('tableHint').style.display = '';
+  updateClearBtn();
+}
+
+function clearTable() {
+  tableCards.forEach(c => c.el.remove());
+  tableCards = [];
+  document.getElementById('tableHint').style.display = '';
+  updateClearBtn();
+}
+
+function updateClearBtn() {
+  document.getElementById('btnClearTable').style.display = tableCards.length ? '' : 'none';
+}
+
+// ─── CARD MOVE ───────────────────────────────────────────
+function startCardMove(e, card) {
+  if (e.target.closest('.table-card-resize') || e.target.closest('.table-card-remove')) return;
+  e.preventDefault();
+  const isTouch = e.type === 'touchstart';
+  const pt  = isTouch ? e.touches[0] : e;
+  const area = document.getElementById('tableArea').getBoundingClientRect();
+
+  let startX = pt.clientX - area.left - parseFloat(card.style.left);
+  let startY = pt.clientY - area.top  - parseFloat(card.style.top);
+  card._didDrag = false;
+
+  // Bring to front
+  card.style.zIndex = 100 + cardIdSeq++;
+
+  function move(ev) {
+    const p  = ev.touches ? ev.touches[0] : ev;
+    const nx = p.clientX - area.left - startX;
+    const ny = p.clientY - area.top  - startY;
+    const maxX = area.width  - parseFloat(card.style.width);
+    const maxY = area.height - parseFloat(card.style.height);
+    card.style.left = Math.max(0, Math.min(nx, maxX)) + 'px';
+    card.style.top  = Math.max(0, Math.min(ny, maxY)) + 'px';
+    card._didDrag   = true;
+  }
+  function up() {
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('mouseup',   up);
+    document.removeEventListener('touchend',  up);
+  }
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, {passive:false});
+  document.addEventListener('mouseup',   up);
+  document.addEventListener('touchend',  up);
+}
+
+// ─── CARD RESIZE ─────────────────────────────────────────
+function startCardResize(e, card) {
+  e.preventDefault(); e.stopPropagation();
+  const isTouch = e.type === 'touchstart';
+  const pt = isTouch ? e.touches[0] : e;
+  const startW = parseFloat(card.style.width);
+  const startH = parseFloat(card.style.height);
+  const ratio  = startH / startW;
+  const startX = pt.clientX;
+
+  function move(ev) {
+    const p  = ev.touches ? ev.touches[0] : ev;
+    const dw = p.clientX - startX;
+    const nw = Math.max(80, Math.min(startW + dw, 400));
+    card.style.width  = nw + 'px';
+    card.style.height = Math.round(nw * ratio) + 'px';
+  }
+  function up() {
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('mouseup',   up);
+    document.removeEventListener('touchend',  up);
+  }
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, {passive:false});
+  document.addEventListener('mouseup',   up);
+  document.addEventListener('touchend',  up);
+}
+
+// ─── DRAG FROM GALLERY TO TABLE ──────────────────────────
+let _gdrag = null;
+
+function startGalleryDrag(e) {
+  if (e.type === 'touchstart') e.preventDefault();
+  const isTouch = e.type === 'touchstart';
+  const pt  = isTouch ? e.touches[0] : e;
+  const src = e.currentTarget;
+  const path = src.dataset.path;
+
+  // Create ghost
+  const ghost = document.createElement('div');
+  ghost.style.cssText = `
+    position:fixed; pointer-events:none; z-index:999; border-radius:8px; overflow:hidden;
+    width:90px; height:120px; opacity:0.85; box-shadow:0 8px 24px rgba(0,0,0,0.3);
+    top:${pt.clientY - 60}px; left:${pt.clientX - 45}px; transition:none;
+  `;
+  if (galleryFace === 'up') {
+    ghost.style.background = `url(${rawUrl(path)}) center/cover`;
+  } else {
+    ghost.style.background = 'linear-gradient(145deg,#7c9885,#4e6b59)';
+  }
+  document.body.appendChild(ghost);
+  _gdrag = { ghost, path, faceDown: galleryFace === 'down' };
+
+  function move(ev) {
+    const p = ev.touches ? ev.touches[0] : ev;
+    ghost.style.left = (p.clientX - 45) + 'px';
+    ghost.style.top  = (p.clientY - 60) + 'px';
+  }
+  function up(ev) {
+    const p = ev.changedTouches ? ev.changedTouches[0] : ev;
+    ghost.remove();
+    _gdrag = null;
+
+    const area = document.getElementById('tableArea');
+    const rect = area.getBoundingClientRect();
+    // Drop only if over the table area
+    if (p.clientX >= rect.left && p.clientX <= rect.right &&
+        p.clientY >= rect.top  && p.clientY <= rect.bottom) {
+      addCardToTable(path, galleryFace === 'down', p.clientX - rect.left, p.clientY - rect.top);
+    }
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('touchmove', move);
+    document.removeEventListener('mouseup',   up);
+    document.removeEventListener('touchend',  up);
+  }
+  document.addEventListener('mousemove', move);
+  document.addEventListener('touchmove', move, {passive:false});
+  document.addEventListener('mouseup',   up);
+  document.addEventListener('touchend',  up);
+}
+
+// ─── NEW DECK ─────────────────────────────────────────────
+function showNewDeck() { openOverlay('overlayNewDeck'); setTimeout(()=>document.getElementById('newDeckInput').focus(),50); }
+
+async function createDeck() {
+  const name = document.getElementById('newDeckInput').value.trim();
+  if (!name) { toast('Введите название','err'); return; }
+  const id = slugify(name) + '-' + Date.now();
+  const deck = { id, name, cards:[] };
+  decksData.decks.push(deck);
+  try {
+    await saveDecksJson();
+    closeOverlay('overlayNewDeck');
+    document.getElementById('newDeckInput').value = '';
+    renderDeckList();
+    toast(`Колода «${name}» создана`, 'ok');
+    // Open admin immediately
+    adminDeck = deck;
+    openAdminForDeck(deck);
+  } catch(e) {
+    decksData.decks.pop();
+    toast('Ошибка: '+e.message,'err');
+  }
+}
+
+// ─── ADMIN ───────────────────────────────────────────────
+function goAdmin() { openAdminForDeck(activeDeck || decksData.decks[0] || null); }
+function goMain()  { showScreen('main'); }
+
+function openAdminDeck(id, e) {
+  if (e) e.stopPropagation();
+  const d = decksData.decks.find(x => x.id === id);
+  if (!d) return;
+  openAdminForDeck(d);
+}
+
+function openAdminForDeck(d) {
+  if (!d) { toast('Сначала выберите колоду','err'); return; }
+  adminDeck = d;
+  document.getElementById('adminTitle').textContent = `Управление: ${d.name}`;
+  document.getElementById('adminDeckNameInput').value = d.name;
+  renderAdminCards();
+  showScreen('admin');
+}
+
+function renderAdminCards() {
+  const cards = adminDeck ? (adminDeck.cards||[]) : [];
+  document.getElementById('adminCardCount').textContent = cards.length;
+  document.getElementById('adminCardsGrid').innerHTML = cards.map((path,i) =>
+    `<div class="admin-card-item">
+      <img src="${rawUrl(path)}" loading="lazy" />
+      <button class="admin-card-del" onclick="deleteAdminCard(${i})">✕</button>
+    </div>`
+  ).join('');
+}
+
+async function saveDeckName() {
+  const name = document.getElementById('adminDeckNameInput').value.trim();
+  if (!name||!adminDeck) return;
+  adminDeck.name = name;
+  try {
+    await saveDecksJson();
+    document.getElementById('adminTitle').textContent = `Управление: ${name}`;
+    if (activeDeck && activeDeck.id === adminDeck.id) {
+      document.getElementById('galleryDeckName').textContent = name;
+      document.getElementById('headerDeckLabel').textContent = name;
+    }
+    renderDeckList();
+    toast('Название обновлено','ok');
+  } catch(e) { toast('Ошибка: '+e.message,'err'); }
+}
+
+async function deleteAdminCard(idx) {
+  if (!adminDeck) return;
+  const path = adminDeck.cards[idx];
+  try {
+    const fi = await ghGet(path);
+    if (fi) await ghDelete(path, fi.sha);
+    adminDeck.cards.splice(idx, 1);
+    await saveDecksJson();
+    renderAdminCards();
+    if (activeDeck && activeDeck.id === adminDeck.id) {
+      galleryOrder = Array.from({length:adminDeck.cards.length},(_,i)=>i);
+      renderGallery();
+    }
+    renderDeckList();
+    toast('Карта удалена','ok');
+  } catch(e) { toast('Ошибка: '+e.message,'err'); }
+}
+
+function confirmDeleteDeck() {
+  if (!adminDeck) return;
+  document.getElementById('confirmTitle').textContent = 'Удалить колоду?';
+  document.getElementById('confirmBody').textContent  = `Колода «${adminDeck.name}» и все карты будут удалены безвозвратно.`;
+  document.getElementById('confirmOkBtn').onclick = deleteDeck;
+  openOverlay('overlayConfirm');
+}
+
+async function deleteDeck() {
+  closeOverlay('overlayConfirm');
+  toast('Удаление…');
+  try {
+    for (const path of (adminDeck.cards||[])) {
+      try { const fi=await ghGet(path); if(fi) await ghDelete(path,fi.sha); } catch(_){}
+    }
+    decksData.decks = decksData.decks.filter(d => d.id !== adminDeck.id);
+    await saveDecksJson();
+    if (activeDeck && activeDeck.id === adminDeck.id) {
+      activeDeck = null;
+      document.getElementById('gallerySection').style.display = 'none';
+      document.getElementById('headerDeckLabel').textContent = 'Выберите колоду';
+    }
+    adminDeck = null;
+    renderDeckList();
+    goMain();
+    toast('Колода удалена','ok');
+  } catch(e) { toast('Ошибка: '+e.message,'err'); }
+}
+
+// ─── UPLOAD ──────────────────────────────────────────────
+function handleUpload(e) { uploadFiles(Array.from(e.target.files)); e.target.value=''; }
+
+const uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('over'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadArea.classList.remove('over');
+  uploadFiles(Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')));
+});
+
+async function uploadFiles(files) {
+  if (!files.length || !adminDeck) return;
+  const pw   = document.getElementById('progressWrap');
+  const pf   = document.getElementById('progressFill');
+  const pt   = document.getElementById('progressText');
+  pw.style.display = '';
+  let done = 0;
+  for (const file of files) {
+    pt.textContent = `Загрузка ${done+1} из ${files.length}: ${file.name}`;
+    pf.style.width = (done/files.length*100) + '%';
+    try {
+      const b64  = await toBase64(file);
+      const ext  = file.name.split('.').pop().toLowerCase() || 'jpg';
+      const name = `${Date.now()}_${done}.${ext}`;
+      const path = `decks/${adminDeck.id}/${name}`;
+      await ghPutBinary(path, b64);
+      if (!adminDeck.cards) adminDeck.cards = [];
+      adminDeck.cards.push(path);
+      done++;
+    } catch(e) { toast(`Ошибка ${file.name}: ${e.message}`,'err'); }
+  }
+  pf.style.width = '100%'; pt.textContent = 'Сохранение…';
+  try {
+    await saveDecksJson();
+    renderAdminCards();
+    renderDeckList();
+    if (activeDeck && activeDeck.id === adminDeck.id) {
+      galleryOrder = Array.from({length:adminDeck.cards.length},(_,i)=>i);
+      renderGallery();
+    }
+    toast(`Загружено: ${done} карт`,'ok');
+  } catch(e) { toast('Ошибка сохранения: '+e.message,'err'); }
+  pw.style.display = 'none';
+}
+
+function toBase64(file) {
+  return new Promise((res,rej) => {
+    const fr = new FileReader();
+    fr.onload  = () => res(fr.result.split(',')[1]);
+    fr.onerror = rej;
+    fr.readAsDataURL(file);
+  });
+}
+
+// ─── OVERLAYS ────────────────────────────────────────────
+function openOverlay(id)  { document.getElementById(id).classList.add('open'); }
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+
+// ─── TOAST ───────────────────────────────────────────────
+let _toastTimer;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = `toast show ${type}`;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+// ─── UTILS ───────────────────────────────────────────────
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function slugify(s) { return s.toLowerCase().replace(/[^a-zа-яё0-9]+/gi,'-').replace(/^-|-$/g,''); }
+
+// Escape key closes overlays
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open'));
+});
+
+// ─── START ───────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
