@@ -177,9 +177,13 @@
     .gallery-card-wrap:hover { transform: scale(1.02); box-shadow: 0 3px 10px rgba(0,0,0,0.18); }
     .gallery-card-wrap:active { cursor: grabbing; }
     .gallery-card-wrap img { width: 100%; height: auto; display: block; pointer-events: none; }
-    /* Back mode: force portrait shape on the wrapper itself */
+    /* Back mode: two-column grid of fixed-size portrait cards */
+    .gallery-grid.back-mode {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
     .gallery-grid.back-mode .gallery-card-wrap {
-      aspect-ratio: 3/4 !important;
+      aspect-ratio: 3/4;
       min-height: unset !important;
     }
     .gallery-card-back {
